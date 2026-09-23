@@ -4,44 +4,50 @@
 A security checklist is a comprehensive, step-by-step list of verifiable items that must be checked and confirmed before deploying a smart contract to the mainnet.
 
 ## The Best Analogy
-Think of a security checklist like a **pilot's pre-flight checklist**. A pilot doesn't just hop in the cockpit and take off. They systematically check the fuel, flaps, engines, and instruments. If even one item fails, the flight is aborted. Your smart contract deployment should be no different.
+Think of a security checklist like a **pilot's pre-flight checklist**. A pilot doesn't just hop in the cockpit and take off. They systematically check fuel, flaps, engines, and instruments. If even one item fails, the flight is aborted.
 
-## The Pre-Deployment Checklist
+## Example: Automated Checklist via GitHub Actions
 
-### 1. Code Quality & Logic
+```yaml
+# .github/workflows/security.yml
+name: Security Checklist
+
+on: [push, pull_request]
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        
+      - name: Run Tests (Must be >90% coverage)
+        run: forge test --mc CoverageTest
+        
+      - name: Run Slither Static Analysis
+        uses: crytic/slither-action@v0.3.0
+        with:
+          fail-on: high
+          slither-args: "--exclude naming-convention"
+          
+      - name: Check Contract Size
+        run: forge build --sizes
+```
+
+## Manual Pre-Deployment Checklist
 - [ ] All functions follow the Checks-Effects-Interactions pattern.
-- [ ] No unchecked external calls (use `ReentrancyGuard`).
-- [ ] All state variables are initialized correctly.
-- [ ] No hardcoded addresses (use environment variables or constructors).
-- [ ] Math operations are safe (using Solidity 0.8+ or SafeMath).
-
-### 2. Access Control
-- [ ] Sensitive functions (mint, burn, pause, withdraw) have `onlyOwner` or role-based modifiers.
-- [ ] The `owner` is correctly set in the constructor.
-- [ ] Plan for ownership transfer (use `Ownable2Step` to prevent accidental lockouts).
-
-### 3. Economic & Business Logic
-- [ ] Token decimals are standard (usually 18).
-- [ ] Max supply limits are enforced.
-- [ ] Fees and royalties are calculated correctly and don't exceed 100%.
-- [ ] Oracles used are decentralized (e.g., Chainlink) and not spot DEX prices.
-
-### 4. Testing & Analysis
-- [ ] Unit test coverage is > 90%.
-- [ ] Fuzzing tests (Echidna/Foundry) have been run for at least 1 hour.
-- [ ] Static analysis (Slither) has been run and all high/critical issues resolved.
-- [ ] Tested on a local fork of the mainnet (using Foundry or Hardhat).
-
-### 5. Deployment & Operations
-- [ ] Contract code is verified on Etherscan immediately after deployment.
+- [ ] No unchecked external calls (using `ReentrancyGuard`).
+- [ ] Sensitive functions have `onlyOwner` or role-based modifiers.
+- [ ] Math operations are safe (Solidity 0.8+ or SafeMath).
+- [ ] Oracles used are decentralized (e.g., Chainlink), not spot DEX prices.
 - [ ] Admin keys are stored in a secure Multi-Sig wallet (e.g., Safe), not a single EOA.
+- [ ] Contract code is verified on Etherscan immediately after deployment.
 - [ ] Emergency pause mechanism is tested and ready.
-- [ ] A professional third-party audit has been completed and findings resolved.
-- [ ] Monitoring tools (e.g., Tenderly, OpenZeppelin Defender) are set up to alert on unusual activity.
 
 ## Key Takeaways
 - **Never Skip Steps:** Rushing deployment to "catch a market trend" is the #1 cause of hacks.
-- **Automate the Checklist:** Integrate Slither and test coverage checks into your GitHub Actions CI/CD pipeline.
+- **Automate the Checklist:** Integrate Slither and test coverage into your CI/CD pipeline (like the YAML above).
 - **Peer Review:** Have another developer review your code and this checklist before deployment.
-- **Immutability:** Remember, once deployed, you cannot change the code (unless using proxies). Double-check everything.
 - **Sleep on It:** If you're tired or stressed, delay the deployment. Mistakes happen when rushed.
